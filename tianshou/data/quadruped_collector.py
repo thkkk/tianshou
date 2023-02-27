@@ -64,11 +64,7 @@ class Collector(object):
         exploration_noise: bool = False,
     ) -> None:
         super().__init__()
-        if isinstance(env, gym.Env) and not hasattr(env, "__len__"):
-            warnings.warn("Single environment detected, wrap to DummyVectorEnv.")
-            self.env = DummyVectorEnv([lambda: env])  # type: ignore
-        else:
-            self.env = env  # type: ignore
+        self.env = env  # type: ignore
         self.env_num = len(self.env)
         self.exploration_noise = exploration_noise
         self._assign_buffer(buffer)
@@ -143,7 +139,7 @@ class Collector(object):
     def reset_env(self, gym_reset_kwargs: Optional[Dict[str, Any]] = None) -> None:
         """Reset all of the environments."""
         gym_reset_kwargs = gym_reset_kwargs if gym_reset_kwargs else {}
-        obs, info = self.env.reset(**gym_reset_kwargs)
+        obs, info = self.env.reset()
         if self.preprocess_fn:
             processed_data = self.preprocess_fn(
                 obs=obs, info=info, env_id=np.arange(self.env_num)
@@ -170,9 +166,10 @@ class Collector(object):
         global_ids: Union[List[int], np.ndarray],
         gym_reset_kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
+        # TODO
         gym_reset_kwargs = gym_reset_kwargs if gym_reset_kwargs else {}
-        print("global_ids", global_ids, type(global_ids))
         obs_reset, info = self.env.reset(global_ids, **gym_reset_kwargs)
+        # self.env.reset_idx(global_ids)
         if self.preprocess_fn:
             processed_data = self.preprocess_fn(
                 obs=obs_reset, info=info, env_id=global_ids
@@ -295,7 +292,6 @@ class Collector(object):
             # step in env
             obs_next, rew, terminated, truncated, info = self.env.step(
                 action_remap,  # type: ignore
-                ready_env_ids
             )
             done = np.logical_or(terminated, truncated)
 
@@ -554,7 +550,6 @@ class AsyncCollector(Collector):
             # step in env
             obs_next, rew, terminated, truncated, info = self.env.step(
                 action_remap,  # type: ignore
-                ready_env_ids
             )
             done = np.logical_or(terminated, truncated)
 
