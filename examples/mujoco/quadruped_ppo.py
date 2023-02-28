@@ -6,14 +6,14 @@ import os
 import pprint
 
 import numpy as np
-import torch
 from quadruped_env import QuadrupedEnv
+import torch
 from torch import nn
 from torch.distributions import Independent, Normal
 from torch.optim.lr_scheduler import LambdaLR
 from torch.utils.tensorboard import SummaryWriter
 
-from tianshou.data import Collector, ReplayBuffer, VectorReplayBuffer
+from tianshou.data import QuadrupedCollector, ReplayBuffer, VectorReplayBuffer
 from tianshou.policy import PPOPolicy
 from tianshou.trainer import onpolicy_trainer
 from tianshou.utils import TensorboardLogger, WandbLogger
@@ -74,7 +74,11 @@ def get_args():
 
 
 def test_ppo(args=get_args()):
-    env, test_envs = QuadrupedEnv(args.task, args.training_num), QuadrupedEnv(args.task, args.test_num)
+    # env, test_envs = QuadrupedEnv(args.task, args.training_num), QuadrupedEnv(args.task, args.test_num)
+    env = QuadrupedEnv(args.task, args.training_num)
+    train_envs = env
+    test_envs = env
+    
     args.state_shape = env.observation_space.shape or env.observation_space.n
     args.action_shape = env.action_space.shape or env.action_space.n
     args.max_action = env.action_space.high[0]
@@ -163,8 +167,8 @@ def test_ppo(args=get_args()):
     if args.resume_path:
         ckpt = torch.load(args.resume_path, map_location=args.device)
         policy.load_state_dict(ckpt["model"])
-        train_envs.set_obs_rms(ckpt["obs_rms"])
-        test_envs.set_obs_rms(ckpt["obs_rms"])
+        # train_envs.set_obs_rms(ckpt["obs_rms"])
+        # test_envs.set_obs_rms(ckpt["obs_rms"])
         print("Loaded agent from: ", args.resume_path)
 
     # collector
@@ -172,8 +176,8 @@ def test_ppo(args=get_args()):
         buffer = VectorReplayBuffer(args.buffer_size, len(train_envs))
     else:
         buffer = ReplayBuffer(args.buffer_size)
-    train_collector = Collector(policy, train_envs, buffer, exploration_noise=True)
-    test_collector = Collector(policy, test_envs)
+    train_collector = QuadrupedCollector(policy, train_envs, buffer, exploration_noise=True)
+    test_collector = QuadrupedCollector(policy, test_envs)
 
     # log
     now = datetime.datetime.now().strftime("%y%m%d-%H%M%S")
@@ -198,7 +202,7 @@ def test_ppo(args=get_args()):
         logger.load(writer)
 
     def save_best_fn(policy):
-        state = {"model": policy.state_dict(), "obs_rms": train_envs.get_obs_rms()}
+        state = {"model": policy.state_dict()}  # , "obs_rms": train_envs.get_obs_rms()
         torch.save(state, os.path.join(log_path, "policy.pth"))
 
     if not args.watch:

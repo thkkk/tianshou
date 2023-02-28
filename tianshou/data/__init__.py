@@ -19,6 +19,8 @@ from tianshou.data.buffer.vecbuf import (
 )
 from tianshou.data.buffer.cached import CachedReplayBuffer
 from tianshou.data.collector import Collector, AsyncCollector
+from tianshou.data.quadruped_collector import QuadrupedCollector
+
 
 __all__ = [
     "Batch",
@@ -38,4 +40,5 @@ __all__ = [
     "CachedReplayBuffer",
     "Collector",
     "AsyncCollector",
+    "QuadrupedCollector",
 ]

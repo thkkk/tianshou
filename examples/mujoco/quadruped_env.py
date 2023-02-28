@@ -3,6 +3,7 @@ from gym import spaces
 import numpy as np
 from legged_gym.envs import *
 from legged_gym.utils import get_args, task_registry
+import torch
 
 
 class QuadrupedEnv(gym.Env):
@@ -26,35 +27,44 @@ class QuadrupedEnv(gym.Env):
         self.observation_space = spaces.Box(
             low=-10.0, 
             high=10.0, 
-            shape=(self.n_envs, self.n_state), 
+            shape=(self.n_state, ),  # self.n_envs, 
             dtype=float
-        ),  # low high: TODO
+        )  # low high: TODO
 
         self.action_space = spaces.Box(low=-10.0, high=10.0, 
-                                       shape=(self.n_envs, self.n_action), dtype=float)
+                                       shape=(self.n_action, ), dtype=float)  # self.n_envs, 
 
         assert render_mode is None or render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
+        
+        self.is_async = False
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
     def __len__(self):
         return self.n_envs
     
-    def _get_info(self):
-        return {
-            "env_id": np.arange(0, self.n_envs)
-        }
+    def _get_info(self, info=None):
+        if info:
+            info["env_id"] = np.arange(0, self.n_envs)
+            return info
+        else:
+            return {
+                "env_id": np.arange(0, self.n_envs)
+            }
 
     def reset_idx(self, env_ids):
         # return: obs_reset, info
-        # self.env.reset_idx(env_ids)
-        pass
+        if isinstance(env_ids, np.ndarray):
+            env_ids = list(env_ids)
+        self.env.reset_idx(env_ids)
+        return self.env.get_observations(), self._get_info()
     
     def reset(self, seed=None, options=None):
         # We need the following line to seed self.np_random
         super().reset(seed=seed)
 
         # Choose the agent's location uniformly at random
-        self._agent_state = self.env.reset()[0]
+        self._agent_state = self.env.reset()[0]  # obs, privileged_obs
 
         observation = self._agent_state
         info = self._get_info()
@@ -67,10 +77,12 @@ class QuadrupedEnv(gym.Env):
     def step(self, action):
         # action: (self.n_envs, self.n_action)
         
-        state_next, privileged_obs, reward, done, info = self.env.step(action)  # FIXME: cuda out of memory
+        # print("def step(self, action):", type(action), action.shape)  # <class 'numpy.ndarray'> (4096, 12)
+        
+        state_next, privileged_obs, reward, done, info = self.env.step(torch.tensor(action, device=self.device))  
         
         observation = state_next
-        info = self._get_info()
+        info = self._get_info(info)
 
         # if self.render_mode == "human":
         #     self._render_frame()
