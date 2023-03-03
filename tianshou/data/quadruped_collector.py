@@ -326,6 +326,7 @@ class QuadrupedCollector(object):
             ptr, ep_rew, ep_len, ep_idx = self.buffer.add(
                 self.data, buffer_ids=ready_env_ids
             )
+            # FIXME：为什么ready_env_ids里面的id超出了self.data这个batch的长度？
 
             # collect statistics
             step_count += len(ready_env_ids)
@@ -356,6 +357,9 @@ class QuadrupedCollector(object):
                         self.data = self.data[mask]
 
             self.data.obs = self.data.obs_next
+            
+            print("ready_env_ids", ready_env_ids)
+            print("len(self.data)", len(self.data))
 
             if (n_step and step_count >= n_step) or \
                     (n_episode and episode_count >= n_episode):

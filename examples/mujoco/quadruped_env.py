@@ -98,7 +98,7 @@ class QuadrupedEnv(gym.Env):
         #     print("id", id)
         # action = torch.tensor(action, device=self.device)
         # print("action.shape", action.shape)
-        obs_next, privileged_obs, rew, done, info = self.env.step(act)
+        obs_next, privileged_obs, rew, done, info = self.env.step(act)  # those variables are 4096-dim
         
         observation = obs_next
         info = self._get_info(info)
@@ -132,10 +132,23 @@ class QuadrupedEnv(gym.Env):
                     raise ValueError("The length of info[episode][k] must be 1 or equal to num_envs")
             else:
                 info["episode"][k] = v_
+        
+        if max(id) >= len(info["time_outs"]):
+            print("len(id), id", len(id), id)
+            print("len(info[\"time_outs\"])", len(info["time_outs"]))
+            # 为什么time_outs的长度会小于4096呢？
+            new_id = []
+            for x in id:
+                if x < len(info["time_outs"]):
+                    new_id.append(x)
+            id = new_id
+            print("new_id!!!")
+        
         if isinstance(info["time_outs"], torch.Tensor):
             info["time_outs"] = info["time_outs"][id].cpu().numpy()
         elif isinstance(info["time_outs"], np.ndarray):
-            info["time_outs"] = info["time_outs"][id]
+            info["time_outs"] = info["time_outs"][id]  # FIXME: IndexError: index 4094 is out of bounds for axis 0 with size 4094
+        # 注意一下info["time_outs"]里面对应的是4096中的哪些维度，id指的应该是原先的4096中的那些维度
             
         for k, v in info.items():
             if k != "episode" and k != "time_outs":
