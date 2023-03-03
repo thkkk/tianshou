@@ -166,7 +166,6 @@ class QuadrupedCollector(object):
         global_ids: Union[List[int], np.ndarray],
         gym_reset_kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
-        # TODO
         gym_reset_kwargs = gym_reset_kwargs if gym_reset_kwargs else {}
         # obs_reset, info = self.env.reset(global_ids, **gym_reset_kwargs)
         obs_reset, info = self.env.reset_idx(global_ids)
@@ -176,8 +175,8 @@ class QuadrupedCollector(object):
             )
             obs_reset = processed_data.get("obs", obs_reset)
             info = processed_data.get("info", info)
+        
         self.data.info[local_ids] = info
-
         self.data.obs_next[local_ids] = obs_reset
 
     def collect(
@@ -245,7 +244,7 @@ class QuadrupedCollector(object):
                 "Please specify at least one (either n_step or n_episode) "
                 "in AsyncCollector.collect()."
             )
-
+        
         start_time = time.time()
 
         step_count = 0
@@ -292,15 +291,10 @@ class QuadrupedCollector(object):
             # step in env
             obs_next, rew, terminated, truncated, info = self.env.step(
                 action_remap,  # type: ignore
+                ready_env_ids,
             )
-            # attention: obs_next is torch.tensor, not numpy.ndarray
-            # transfer to numpy.ndarray
-            obs_next = obs_next.cpu().numpy()
-            rew = rew.cpu().numpy()
-            terminated = terminated.cpu().numpy()
-            truncated = truncated.cpu().numpy()
-            done = terminated.copy()   # in QuadrupedEnv, terminated is same as truncated
-
+            done = terminated
+            
             self.data.update(
                 obs_next=obs_next,
                 rew=rew,
@@ -309,6 +303,7 @@ class QuadrupedCollector(object):
                 done=done,
                 info=info
             )
+            
             if self.preprocess_fn:
                 self.data.update(
                     self.preprocess_fn(
@@ -328,8 +323,6 @@ class QuadrupedCollector(object):
                     time.sleep(render)
 
             # add data into the buffer
-            # print(" self.data", self.data)
-            # problems found here
             ptr, ep_rew, ep_len, ep_idx = self.buffer.add(
                 self.data, buffer_ids=ready_env_ids
             )
@@ -338,9 +331,9 @@ class QuadrupedCollector(object):
             step_count += len(ready_env_ids)
 
             if np.any(done):
-                env_ind_local = np.where(done)[0]
+                env_ind_local = np.where(done)[0]  # env_ind_local is the envs that are done in this step
                 env_ind_global = ready_env_ids[env_ind_local]
-                episode_count += len(env_ind_local)
+                episode_count += len(env_ind_local)  # number of episodes that are already done
                 episode_lens.append(ep_len[env_ind_local])
                 episode_rews.append(ep_rew[env_ind_local])
                 episode_start_indices.append(ep_idx[env_ind_local])

@@ -173,6 +173,7 @@ class Collector(object):
         gym_reset_kwargs = gym_reset_kwargs if gym_reset_kwargs else {}
         print("global_ids", global_ids, type(global_ids))
         obs_reset, info = self.env.reset(global_ids, **gym_reset_kwargs)
+        print("info", info)
         if self.preprocess_fn:
             processed_data = self.preprocess_fn(
                 obs=obs_reset, info=info, env_id=global_ids
