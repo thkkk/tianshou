@@ -26,14 +26,14 @@ def get_args():
     parser.add_argument("--task", type=str, default="aliengo_stand")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--buffer-size", type=int, default=4096)
-    parser.add_argument("--hidden-sizes", type=int, nargs="*", default=[64, 64])
-    parser.add_argument("--lr", type=float, default=3e-4)
-    parser.add_argument("--gamma", type=float, default=0.99)
+    parser.add_argument("--hidden-sizes", type=int, nargs="*", default=[256, 256, 256])
+    parser.add_argument("--lr", type=float, default=1e-3)
+    parser.add_argument("--gamma", type=float, default=0.998)
     parser.add_argument("--epoch", type=int, default=100)
-    parser.add_argument("--step-per-epoch", type=int, default=30000)
-    parser.add_argument("--step-per-collect", type=int, default=2048)
+    parser.add_argument("--step-per-epoch", type=int, default=100000)
+    parser.add_argument("--step-per-collect", type=int, default=4096)
     parser.add_argument("--repeat-per-collect", type=int, default=10)
-    parser.add_argument("--batch-size", type=int, default=64)
+    parser.add_argument("--batch-size", type=int, default=4096)
     parser.add_argument("--training-num", type=int, default=4096)
     parser.add_argument("--test-num", type=int, default=4096)
     # ppo special
@@ -75,6 +75,7 @@ def get_args():
 
 def test_ppo(args=get_args()):
     # env, test_envs = QuadrupedEnv(args.task, args.training_num), QuadrupedEnv(args.task, args.test_num)
+    # steps: 100 * 30000 * 4096 = 12.3e9
     env = QuadrupedEnv(args.task, args.training_num)
     train_envs = env
     test_envs = env
@@ -92,7 +93,7 @@ def test_ppo(args=get_args()):
     net_a = Net(
         args.state_shape,
         hidden_sizes=args.hidden_sizes,
-        activation=nn.Tanh,
+        activation=nn.ELU,  # TODO: ELU  Tanh
         device=args.device,
     )
     actor = ActorProb(
@@ -105,7 +106,7 @@ def test_ppo(args=get_args()):
     net_c = Net(
         args.state_shape,
         hidden_sizes=args.hidden_sizes,
-        activation=nn.Tanh,
+        activation=nn.ELU,
         device=args.device,
     )
     critic = Critic(net_c, device=args.device).to(args.device)

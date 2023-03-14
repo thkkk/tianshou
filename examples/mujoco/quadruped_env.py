@@ -36,13 +36,13 @@ class QuadrupedEnv(gym.Env):
         # Observations are dictionaries with the agent's and the target's location.
         # Each location is encoded as an element of {0, ..., `size`}^2, i.e. MultiDiscrete([size, size]).
         self.observation_space = spaces.Box(
-            low=-10.0, 
-            high=10.0, 
+            low=-100.0, 
+            high=100.0, 
             shape=(self.n_state, ),  # self.n_envs, 
             dtype=float
         )  # low high: TODO
 
-        self.action_space = spaces.Box(low=-10.0, high=10.0, 
+        self.action_space = spaces.Box(low=-100.0, high=100.0, 
                                        shape=(self.n_action, ), dtype=float)  # self.n_envs, 
 
         assert render_mode is None or render_mode in self.metadata["render_modes"]
@@ -133,23 +133,25 @@ class QuadrupedEnv(gym.Env):
             else:
                 info["episode"][k] = v_
         
-        if max(id) >= len(info["time_outs"]):
-            print("len(id), id", len(id), id)
-            print("len(info[\"time_outs\"])", len(info["time_outs"]))
-            # 为什么time_outs的长度会小于4096呢？
-            new_id = []
-            for x in id:
-                if x < len(info["time_outs"]):
-                    new_id.append(x)
-            id = new_id
-            print("new_id!!!")
+        # if max(id) >= len(info["time_outs"]):
+        #     print("len(id), id", len(id), id)
+        #     print("len(info[\"time_outs\"])", len(info["time_outs"]))
+        #     # 为什么time_outs的长度会小于4096呢？
+        #     new_id = []
+        #     for x in id:
+        #         if x < len(info["time_outs"]):
+        #             new_id.append(x)
+        #     id = new_id
+        #     print("new_id!!!")
         
-        if isinstance(info["time_outs"], torch.Tensor):
-            info["time_outs"] = info["time_outs"][id].cpu().numpy()
-        elif isinstance(info["time_outs"], np.ndarray):
-            info["time_outs"] = info["time_outs"][id]  # FIXME: IndexError: index 4094 is out of bounds for axis 0 with size 4094
+        # if isinstance(info["time_outs"], torch.Tensor):
+        #     info["time_outs"] = info["time_outs"][id].cpu().numpy()
+        # elif isinstance(info["time_outs"], np.ndarray):
+        #     info["time_outs"] = info["time_outs"][id]  # FIXME: IndexError: index 4094 is out of bounds for axis 0 with size 4094
         # 注意一下info["time_outs"]里面对应的是4096中的哪些维度，id指的应该是原先的4096中的那些维度
-            
+        if "time_outs" in info:
+            info.pop("time_outs")
+                    
         for k, v in info.items():
             if k != "episode" and k != "time_outs":
                 if isinstance(v, torch.Tensor):

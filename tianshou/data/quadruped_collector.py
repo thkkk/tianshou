@@ -358,8 +358,9 @@ class QuadrupedCollector(object):
 
             self.data.obs = self.data.obs_next
             
-            print("ready_env_ids", ready_env_ids)
-            print("len(self.data)", len(self.data))
+            # print("ready_env_ids", ready_env_ids)
+            # print("len(self.data)", len(self.data))
+            # ready_env_ids里面的id会超出self.data这个batch的长度
 
             if (n_step and step_count >= n_step) or \
                     (n_episode and episode_count >= n_episode):

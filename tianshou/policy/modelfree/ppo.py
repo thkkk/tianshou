@@ -116,6 +116,9 @@ class PPOPolicy(A2CPolicy):
                 surr2 = ratio.clamp(
                     1.0 - self._eps_clip, 1.0 + self._eps_clip
                 ) * minibatch.adv
+                # print("ratio", ratio)
+                # print("minibatch.adv", minibatch.adv)  # error here
+                # print("surr1, surr2", surr1, surr2)
                 if self._dual_clip:
                     clip1 = torch.min(surr1, surr2)
                     clip2 = torch.max(clip1, self._dual_clip * minibatch.adv)
